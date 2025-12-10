@@ -7,9 +7,11 @@ import { IAuthenticationService } from '../../../platform/authentication/common/
 import { ConfigKey, IConfigurationService } from '../../../platform/configuration/common/configurationService';
 import { ICAPIClientService } from '../../../platform/endpoint/common/capiClient';
 import { IVSCodeExtensionContext } from '../../../platform/extContext/common/extensionContext';
+import { IFileSystemService } from '../../../platform/filesystem/common/fileSystemService';
 import { ILogService } from '../../../platform/log/common/logService';
 import { IFetcherService } from '../../../platform/networking/common/fetcherService';
 import { Disposable } from '../../../util/vs/base/common/lifecycle';
+import { URI } from '../../../util/vs/base/common/uri';
 import { IInstantiationService } from '../../../util/vs/platform/instantiation/common/instantiation';
 import { BYOKKnownModels, BYOKModelProvider, isBYOKEnabled } from '../../byok/common/byokProvider';
 import { IExtensionContribution } from '../../common/contributions';
@@ -33,6 +35,7 @@ export class BYOKContrib extends Disposable implements IExtensionContribution {
 
 	constructor(
 		@IFetcherService private readonly _fetcherService: IFetcherService,
+		@IFileSystemService private readonly _fileSystemService: IFileSystemService,
 		@ILogService private readonly _logService: ILogService,
 		@IConfigurationService private readonly _configurationService: IConfigurationService,
 		@ICAPIClientService private readonly _capiClientService: ICAPIClientService,
@@ -102,9 +105,11 @@ export class BYOKContrib extends Disposable implements IExtensionContribution {
 		}
 	}
 	private async fetchKnownModelList(fetcherService: IFetcherService): Promise<Record<string, BYOKKnownModels>> {
-		const data = await (await fetcherService.fetch('https://main.vscode-cdn.net/extensions/copilotChat.json', { method: 'GET' })).json();
+		// const data = await (await fetcherService.fetch('https://main.vscode-cdn.net/extensions/copilotChat.json', { method: 'GET' })).json();
 		// Use this for testing with changes from a local file. Don't check in
-		// const data = JSON.parse((await this._fileSystemService.readFile(URI.file('/Users/roblou/code/vscode-engineering/chat/copilotChat.json'))).toString());
+		const homeDir = process.env.HOME || process.env.USERPROFILE || '';
+		const localFilePath = `${homeDir}/.code/vscode-engineering/chat/copilotChat.json`;
+		const data = JSON.parse((await this._fileSystemService.readFile(URI.file(localFilePath))).toString());
 		let knownModels: Record<string, BYOKKnownModels>;
 		if (data.version !== 1) {
 			this._logService.warn('BYOK: Copilot Chat known models list is not in the expected format. Defaulting to empty list.');
